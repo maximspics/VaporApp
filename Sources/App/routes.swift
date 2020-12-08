@@ -8,13 +8,13 @@ func routes(_ app: Application) throws {
         return result.returnError(message: "Forbidden")
     }
     
-    app.get("auth", ":action") { req -> String in
-        if let action = req.parameters.get("action") {
-            return Auth().doAction(action: action, queryString: req.query)
-        } else {
-            return result.returnError(message: "You must specify method")
-        }
-    }
+  //  app.get("auth", ":action") { req -> String in
+  //      if let action = req.parameters.get("action") {
+  //          return Auth().doAction(action: action, queryString: req.query)
+  //      } else {
+  //          return result.returnError(message: "You must specify method")
+  //      }
+  //  }
     
     app.get("catalog", ":action") { req -> String in
         if let action = req.parameters.get("action") {
@@ -41,6 +41,8 @@ func routes(_ app: Application) throws {
     }
     
     let controller = AuthController()
-    app.post("test", "register", use: controller.register)
-    
+    app.post("auth", "register", use: controller.register)
+    app.post("auth", "login", use: controller.login)
+    app.post("auth", "change", use: controller.changeData)
+    app.post("auth", "logout", use: controller.logout)
 }
