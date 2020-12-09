@@ -2,13 +2,47 @@ import Fluent
 import Vapor
 
 func routes(_ app: Application) throws {
+    let result = Results()
+    
     app.get { req in
-        return req.view.render("index", ["title": "Hello Vapor!"])
+        return result.returnError(message: "Forbidden")
     }
-
-    app.get("hello") { req -> String in
-        return "Hello, world!"
+    
+  //  app.get("auth", ":action") { req -> String in
+  //      if let action = req.parameters.get("action") {
+  //          return Auth().doAction(action: action, queryString: req.query)
+  //      } else {
+  //          return result.returnError(message: "You must specify method")
+  //      }
+  //  }
+    
+    app.get("catalog", ":action") { req -> String in
+        if let action = req.parameters.get("action") {
+            return Catalog().doAction(action: action, queryString: req.query)
+        } else {
+            return result.returnError(message: "You must specify method")
+        }
     }
-
-    try app.register(collection: TodoController())
+    
+    app.get("reviews", ":action") { req -> String in
+        if let action = req.parameters.get("action") {
+            return Reviews().doAction(action: action, queryString: req.query)
+        } else {
+            return result.returnError(message: "You must specify method")
+        }
+    }
+    
+    app.get("basket", ":action") { req -> String in
+        if let action = req.parameters.get("action") {
+            return Basket().doAction(action: action, queryString: req.query)
+        } else {
+            return result.returnError(message: "You must specify method")
+        }
+    }
+    
+    let controller = AuthController()
+    app.post("auth", "register", use: controller.register)
+    app.post("auth", "login", use: controller.login)
+    app.post("auth", "change", use: controller.changeData)
+    app.post("auth", "logout", use: controller.logout)
 }
