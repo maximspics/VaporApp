@@ -17,6 +17,10 @@ struct LogoutRequest: Content {
     var id: Int
 }
 
+struct GetUserDataRequest: Content {
+    var userId: Int
+}
+
 struct RegisterRequest: Content {
     let id: Int
     let userName: String
@@ -28,11 +32,10 @@ struct RegisterRequest: Content {
 }
 
 struct ChangeDataRequest: Content {
-    let id: Int
-    let userName: String
+    let userId: Int
+    let login: String
     let password: String
     let email: String
-    let gender: String
-    let creditCard: String
-    let bio: String
+    let firstName: String
+    let lastName: String
 }

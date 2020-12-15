@@ -20,10 +20,16 @@ struct LogoutResponse: Content {
 }
 
 struct User: Content {
-    let id: Int
-    let login: String
-    let firstName: String
-    let lastName: String
+    let id_user: Int
+    let user_login: String
+    let user_name: String
+    let user_lastname: String
+    let user_email: String
+}
+
+struct GetUserDataResponse: Content {
+    let result, id_user: Int
+    let user_login, user_password, user_name, user_lastname, user_email: String
 }
 
 struct RegisterResponse: Content {
