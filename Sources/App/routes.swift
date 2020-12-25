@@ -1,20 +1,14 @@
 import Fluent
+import FluentSQLiteDriver
 import Vapor
 
 func routes(_ app: Application) throws {
+    
     let result = Results()
     
     app.get { req in
         return result.returnError(message: "Forbidden")
     }
-    
-  //  app.get("auth", ":action") { req -> String in
-  //      if let action = req.parameters.get("action") {
-  //          return Auth().doAction(action: action, queryString: req.query)
-  //      } else {
-  //          return result.returnError(message: "You must specify method")
-  //      }
-  //  }
     
     let authController = AuthController()
     app.post("auth", "register", use: authController.register)
