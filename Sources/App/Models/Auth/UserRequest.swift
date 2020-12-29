@@ -10,9 +10,10 @@ import Vapor
 
 struct UserRequest: Content {
     var userId: Int?
-    var username: String?
+    var email: String?
+    var login: String?
     var password: String?
+    var newPassword: String?
     var firstName: String?
     var lastName: String?
-    var email: String?
 }

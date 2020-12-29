@@ -6,39 +6,46 @@
 //
 
 import Foundation
+import Vapor
 
 class Results {
-    func returnError(message: String) -> String {
-        return "{\"result\": 0, \"error\": \"\(message)\"}"
+    
+    func returnError(_ message: String) -> String {
+        return "{\"result\": 0, \"userMessage\": \"\(message)\"}"
     }
     
-    func returnArrayResult(_ res: [Dictionary<String,Any>]? = nil) -> String {
+    func error(message: String, _ req: Request) -> EventLoopFuture<String> {
+        return req.eventLoop.makeSucceededFuture(returnError(message))
+    }
+    
+    func returnArrayResult(_ res: [Dictionary<String,Any>]? = nil, _ req: Request) -> EventLoopFuture<String> {
         if let res = res {
             if let jsonData = try? JSONSerialization.data(withJSONObject: res, options: [.withoutEscapingSlashes, .prettyPrinted]),
-                let jsonString = String(data: jsonData, encoding: .utf8)
+               let jsonString = String(data: jsonData, encoding: .utf8)
             {
-                return jsonString
+                return req.eventLoop.makeSucceededFuture(jsonString)
             } else {
-                return returnError(message: "unknown error")
+                return req.eventLoop.makeSucceededFuture(returnError("Неизвестная ошибка"))
             }
         } else {
-            return " {\"result\": 1} "
+            return req.eventLoop.makeSucceededFuture("{\"result\": 1}")
         }
     }
     
-    func returnResult(_ res: Dictionary<String,Any>? = nil) -> String {
+    func returnResult(_ res: Dictionary<String,Any>? = nil, _ req: Request) -> EventLoopFuture<String> {
         if var res = res {
             res["result"] = 1
             
             if let jsonData = try? JSONSerialization.data(withJSONObject: res, options: [.withoutEscapingSlashes, .prettyPrinted]),
-                let jsonString = String(data: jsonData, encoding: .utf8)
+               let jsonString = String(data: jsonData, encoding: .utf8)
             {
-                return jsonString
+                print(jsonString)
+                return req.eventLoop.makeSucceededFuture(jsonString)
             } else {
-                return returnError(message: "unknown error")
+                return req.eventLoop.makeSucceededFuture(returnError("Неизвестная ошибка"))
             }
         } else {
-            return " {\"result\": 1} "
+            return req.eventLoop.makeSucceededFuture("{\"result\": 1}")
         }
     }
 }

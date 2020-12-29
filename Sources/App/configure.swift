@@ -11,10 +11,14 @@ public func configure(_ app: Application) throws {
     
     let directoryConfig = DirectoryConfiguration.detect()
     print("\(directoryConfig.workingDirectory)")
- //   app.databases.use(.sqlite(.file("/Users/maximsafronov/Documents/Git/VaporApp/shop.sqlite")), as: .sqlite)
+    app.databases.use(.sqlite(.file("/Users/maximsafronov/Documents/Git/VaporApp/shop.sqlite")), as: .sqlite)
     // прописать путь до базы данных 
-    app.databases.use(.sqlite(.file("shop.sqlite")), as: .sqlite)
+  //  app.databases.use(.sqlite(.file("shop.sqlite")), as: .sqlite)
+    
     app.migrations.add(CreateUser())
+    app.migrations.add(CreateBasket())
+    app.migrations.add(CreateGood())
+    app.migrations.add(CreateReview())
     
     try app.autoMigrate().wait()
     
