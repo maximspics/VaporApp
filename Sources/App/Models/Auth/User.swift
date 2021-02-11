@@ -8,7 +8,7 @@
 import Vapor
 import FluentSQLiteDriver
 
-final class User: Model, Content  {
+final class User: Model, Content {
     // Name of the table or collection.
     static let schema = "users"
     
@@ -45,6 +45,15 @@ final class User: Model, Content  {
     }
 }
 
+extension User: Equatable {
+    static func == (lhs: User, rhs: User) -> Bool {
+        return lhs.email == rhs.email &&
+            lhs.password == rhs.password &&
+            lhs.firstName == rhs.firstName &&
+            lhs.lastName == rhs.lastName
+    }
+}
+
 struct CreateUser: Migration {
     // Prepares the database for storing User models.
     func prepare(on database: Database) -> EventLoopFuture<Void> {
@@ -56,8 +65,8 @@ struct CreateUser: Migration {
             .field("first_name", .string, .required)
             .field("last_name", .string)
             .create()
-        let _ = User(userId: 1, email: "test@mail.ru", password: "test", firstName: "John", lastName: "Doe")
-        .save(on: database)
+        
+        let _ = User(userId: 1, email: "admin", password: "admin", firstName: "John", lastName: "Doe").save(on: database)
         
         return result
     }

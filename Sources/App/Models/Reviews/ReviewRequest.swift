@@ -9,10 +9,6 @@ import Foundation
 import Vapor
 
 struct ReviewRequest: Content {
-    var reviewId: Int?
-    var productId: Int?
+    var id_review, id_product: Int?
     var user_name, user_email, title, description: String?
-}
-struct GetReviewList: Content {
-    var productId: Int?
 }

@@ -1,39 +1,43 @@
 //
-//  File.swift
+//  ReviewController.swift
 //  
 //
 //  Created by Maxim Safronov on 27.12.2020.
 //
 
-import Foundation
+import Fluent
+import FluentSQLiteDriver
 import Vapor
 
 class ReviewController {
     
-    var results: Results!
+    var results = Results()
     
     func getReviewById(reviewId: Int, _ req: Request) -> EventLoopFuture<Review?> {
         return Review.query(on: req.db)
-            .filter(\.$reviewId, .equal, reviewId)
+            .filter(\.$idReview, .equal, reviewId)
             .limit(1)
             .first()
     }
     
     func add(_ req: Request) throws -> EventLoopFuture<String> {
-        guard let query = try? req.query.get(ReviewRequest.self),
-            let productId = query.productId,
-            let userName = query.user_name, let userEmail = query.user_email,
-            let title = query.title, let descritpion = query.description else {
-            throw Abort(.badRequest, reason: "Ошибка получения данных...")
+        guard let review = try? req.content.decode(ReviewRequest.self),
+              let productId = review.id_product,
+              let userName = review.user_name,
+              let userEmail = review.user_email,
+              let title = review.title,
+              let descritpion = review.description else
+        {
+            throw Abort(.badRequest)
         }
         
-        return Review.query(on: req.db).max(\.$reviewId).flatMapAlways { result -> EventLoopFuture<String> in
+        return Review.query(on: req.db).max(\.$idReview).flatMapAlways { result -> EventLoopFuture<String> in
             switch result {
             case let .success(maxId):
                 if let maxId = maxId {
                     return Review(id: (maxId + 1), idProduct: productId,
-                                      userName: userName, userEmail: userEmail,
-                                      title: title, show: false, reviewDescription: descritpion)
+                                  userName: userName, userEmail: userEmail,
+                                  title: title, show: false, description: descritpion)
                         .save(on: req.db).flatMapAlways { result -> EventLoopFuture<String> in
                             switch result {
                             case .success():
@@ -41,7 +45,7 @@ class ReviewController {
                             case .failure(_):
                                 return self.results.error(message: "Комментарий не добавлен!", req)
                             }
-                    }
+                        }
                 } else {
                     return self.results.error(message: "Комментарий не добавлен!", req)
                 }
@@ -53,9 +57,10 @@ class ReviewController {
     }
     
     func approve(_ req: Request) throws -> EventLoopFuture<String> {
-        guard let query = try? req.query.get(ReviewRequest.self),
-            let reviewId = query.reviewId else {
-            throw Abort(.badRequest, reason: "Ошибка получения данных...")
+        guard let review = try? req.content.decode(ReviewRequest.self),
+              let reviewId = review.id_review else
+        {
+            throw Abort(.badRequest)
         }
         
         return getReviewById(reviewId: reviewId, req).map { review -> EventLoopFuture<String> in
@@ -90,18 +95,10 @@ class ReviewController {
     }
     
     func remove(_ req: Request) throws -> EventLoopFuture<String> {
-        guard let query = try? req.query.get(ReviewRequest.self),
-            let reviewId = query.reviewId else {
-            throw Abort(.badRequest, reason: "Ошибка получения данных...")
-        }
-        
-        if reviewId == 3 {
-            let result: Dictionary<String, Any> =
-                [
-                    "result": 1,
-                    "userMessage": ""
-                ]
-            return results.returnResult(result, req)
+        guard let review = try? req.query.get(ReviewRequest.self),
+              let reviewId = review.id_review else
+        {
+            throw Abort(.badRequest)
         }
         
         return getReviewById(reviewId: reviewId, req).map { review -> EventLoopFuture<String> in
@@ -111,7 +108,6 @@ class ReviewController {
                     case .success():
                         let result: Dictionary<String, Any> =
                             [
-                                "result": 1,
                                 "userMessage": "Отзыв успешно удален!"
                             ]
                         return self.results.returnResult(result, req)
@@ -128,42 +124,40 @@ class ReviewController {
     }
     
     func list(_ req: Request) throws -> EventLoopFuture<String> {
-        guard let query = try? req.query.get(GetReviewList.self),
-            let productId = query.productId else {
-            throw Abort(.badRequest, reason: "Ошибка получения данных...")
+        guard let review = try? req.query.get(ReviewRequest.self),
+              let productId = review.id_product else
+        {
+            throw Abort(.badRequest)
         }
-        
         return Review.query(on: req.db)
             .filter(\.$idProduct, .equal, productId)
             .all().map { list -> [[String: Any]] in
                 list.map { item -> [String: Any] in
-                    if let reviewId = item.$reviewId.value,
-                        let productId = item.$idProduct.value,
-                        let title = item.$title.value,
-                        let reviewDescription = item.$reviewDescription.value,
-                        let show = item.$show.value,
-                        let userName = item.$userName.value,
-                        let userEmail = item.$userEmail.value {
+                    if let reviewId = item.$idReview.value,
+                       let productId = item.$idProduct.value,
+                       let title = item.$title.value,
+                       let reviewDescription = item.$description.value,
+                       let show = item.$show.value,
+                       let userName = item.$userName.value,
+                       let userEmail = item.$userEmail.value {
                         
-                        return ["id": reviewId,
+                        return ["id_review": reviewId,
                                 "id_product": productId,
                                 "title": title,
                                 "description": reviewDescription,
                                 "show": show,
                                 "user_name": userName,
-                                "user_email": userEmail
-                        ]
+                                "user_email": userEmail]
                     } else {
                         return [:]
                     }
                 }
-        }.flatMap { result -> EventLoopFuture<String> in
-            if result.count > 0 {
-                
-                return self.results.returnArrayResult(result, req)
-            } else {
-                return self.results.error(message: "Отзыв не найден!", req)
+            }.flatMap { result -> EventLoopFuture<String> in
+                if result.count > 0 {
+                    return self.results.returnArrayResult(result, req)
+                } else {
+                    return self.results.error(message: "Отзыв не найден!", req)
+                }
             }
-        }
     }
 }
