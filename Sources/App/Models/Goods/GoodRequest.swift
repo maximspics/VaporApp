@@ -9,5 +9,5 @@ import Foundation
 import Vapor
 
 struct GoodRequest: Content {
-    var productId: Int?
+    var id: Int?
 }

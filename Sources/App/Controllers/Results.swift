@@ -32,6 +32,7 @@ class Results {
             if let jsonData = try? JSONSerialization.data(withJSONObject: res, options: [.withoutEscapingSlashes, .prettyPrinted]),
                let jsonString = String(data: jsonData, encoding: .utf8)
             {
+                print(jsonString)
                 return req.eventLoop.makeSucceededFuture(jsonString)
             } else {
                 return req.eventLoop.makeSucceededFuture(returnError("Неизвестная ошибка"))
@@ -43,8 +44,9 @@ class Results {
     
     func returnResult(_ res: Dictionary<String,Any>? = nil, _ req: Request) -> EventLoopFuture<String> {
         if var res = res {
-            res["result"] = 1
-            
+            if res["result"] == nil {
+                res["result"] = 1
+            }
             if let jsonData = try? JSONSerialization.data(withJSONObject: res, options: [.withoutEscapingSlashes, .prettyPrinted]),
                let jsonString = String(data: jsonData, encoding: .utf8)
             {

@@ -56,9 +56,7 @@ struct CreateBasket: Migration {
             .field("price", .int, .required)
             .field("quantity", .int, .required)
             .create()
-        let _ = Basket(idProduct: 1, userId: 1, productName: "Iphone X", price: 54990, quantity: 2).save(on: database)
         
-        let _ = Basket(idProduct: 2, userId: 1, productName: "Чехол для Iphone X", price: 2500, quantity: 1).save(on: database)
         return result
     }
 

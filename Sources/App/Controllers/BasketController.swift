@@ -20,17 +20,16 @@ class BasketController {
             .first()
     }
     
-    func getBasket(_ req: Request) throws -> EventLoopFuture<String> {
-        guard let basket = try? req.content.decode(BasketRequest.self),
+    func getBasket(_ req: Request) -> EventLoopFuture<String> {
+        guard let basket = try? req.query.get(BasketRequest.self),
               let userId = basket.userId else {
-            throw results.error(message: "Пользователь не найден...", req) as! Error
+            return results.error(message: "Wrong parameter request", req)
         }
         
         return Basket.query(on: req.db)
             .filter(\.$userId, .equal, userId)
             .all().map { items -> [[String: Any]] in
                 return items.map { item -> [String: Any] in
-                    print(item)
                     if let idProduct = item.$idProduct.value,
                         let productName = item.$productName.value,
                         let price = item.$price.value,
@@ -61,15 +60,15 @@ class BasketController {
                 }
                 
                 let result: [String: Any] = ["amount": amount,
-                                             "countGoods": countGoods,
-                                             "contents": basket]
+                                             "items_count": countGoods,
+                                             "items": basket]
                 
                 return self.results.returnResult(result, req)
                 
             } else {
                 let result: [String: Any] = ["amount": 0,
-                                             "countGoods": 0,
-                                             "contents": []]
+                                             "items_count": 0,
+                                             "items": []]
                 
                 return self.results.returnResult(result, req)
             }
@@ -77,42 +76,44 @@ class BasketController {
     }
     
     func addToBasket(_ req: Request) -> EventLoopFuture<String> {
-        guard let basket = try? req.content.decode(BasketRequest.self),
-            let userId = basket.userId,
-            let productId = basket.productId,
-            let quantity = basket.quantity else {
-            return results.error(message: "Невозможно добавить в корзину...", req)
+        guard let query = try? req.query.get(BasketRequest.self),
+              let userId = query.userId,
+              let productId = query.productId,
+              let quantity = query.quantity else {
+            return results.error(message: "Wrong parameter request", req)
         }
-        return getBasketByUserIdAndProductId(userId: userId, productId: productId, req).flatMap { basket -> EventLoopFuture<String> in
-            if let basket = basket {
+        
+        return Basket.query(on: req.db)
+            .filter(\.$idProduct, .equal, productId)
+            .filter(\.$userId, .equal, userId)
+            .first()
+            .flatMap { basket -> EventLoopFuture<String> in
+                if let basket = basket {
                     basket.quantity = (basket.$quantity.value ?? 0) + quantity;
                     
                     return basket.update(on: req.db).flatMapAlways { result -> EventLoopFuture<String> in
                         switch result {
                         case .success(_):
-                            let result: Dictionary<String, Any> =
-                                [
-                                    "result": 1,
-                                    "userMessage": "Товар успешно добавлен в корзину!"
-                                ]
+                            let result: Dictionary<String, Any> = [
+                                "userMessage" : "Товар успешно добавлен в корзину!"
+                            ]
                             return self.results.returnResult(result, req)
                         case .failure(_):
-                            return self.results.error(message: "Ошибка добавления товара в корзину!", req)
+                            return self.results.error(message: "Add to basket error", req)
                         }
                     }
                 } else {
                     return self.addToBasketNewProd(req)
                 }
-        }
+            }
     }
     
-    // MARK: Добавляем продукт в корзину
     func addToBasketNewProd(_ req: Request) -> EventLoopFuture<String> {
-        guard let query = try? req.content.decode(BasketRequest.self),
+        guard let query = try? req.query.get(BasketRequest.self),
             let userId = query.userId,
             let productId = query.productId,
             let quantity = query.quantity else {
-            return results.error(message: "Невозможно добавить в корзину...", req)
+            return results.error(message: "Wrong parameter request", req)
         }
         
         return GoodsController().getProductById(productId, req).map { good -> EventLoopFuture<String> in
@@ -127,7 +128,6 @@ class BasketController {
                             case .success():
                                 let result: Dictionary<String, Any> =
                                     [
-                                        "result": 1,
                                         "userMessage": "Товар успешно добавлен в корзину!"
                                     ]
                                 return self.results.returnResult(result, req)
@@ -143,10 +143,10 @@ class BasketController {
         }
     }
     
-    func clearBasket(_ req: Request) throws -> EventLoopFuture<String> {
-        guard let query = try? req.content.decode(BasketRequest.self),
+    func clearBasket(_ req: Request) -> EventLoopFuture<String> {
+        guard let query = try? req.query.get(BasketRequest.self),
             let userId = query.userId else {
-            return results.error(message: "Wrong parameter count", req)
+            return results.error(message: "Wrong parameter request", req)
         }
         
         return Basket.query(on: req.db)
@@ -157,21 +157,19 @@ class BasketController {
                 }
                 let result: Dictionary<String, Any> =
                     [
-                        "result": 1,
                         "userMessage": "Корзина успешно очищена!"
                     ]
                 return self.results.returnResult(result, req)
         }
     }
     
-    func removeFromBasket(_ req: Request) throws -> EventLoopFuture<String> {
-        guard let query = try? req.content.decode(BasketRequest.self),
+    func removeFromBasket(_ req: Request) -> EventLoopFuture<String> {
+        guard let query = try? req.query.get(BasketRequest.self),
             let userId = query.userId,
             let productId = query.productId else {
-                return results.error(message: "Wrong parameter count", req)
+            return results.error(message: "Wrong parameter request", req)
         }
         
-        // Ищем запись по продукту
         return Basket.query(on: req.db)
             .filter(\.$userId,.equal,userId)
             .filter(\.$idProduct,.equal,productId).first().map { product -> EventLoopFuture<String> in
@@ -181,7 +179,6 @@ class BasketController {
                         case .success():
                             let result: Dictionary<String, Any> =
                                 [
-                                    "result": 1,
                                     "userMessage": "Товар удален из корзины!"
                                 ]
                             return self.results.returnResult(result, req)
@@ -198,15 +195,13 @@ class BasketController {
         }
     }
 
-    // MARK: Оплата карзины
-    func payOrder(_ req: Request) throws -> EventLoopFuture<String> {
-        guard let query = try? req.content.decode(BasketRequest.self),
+    func payOrder(_ req: Request) -> EventLoopFuture<String> {
+        guard let query = try? req.query.get(BasketRequest.self),
             let userId = query.userId,
             let paySumm = query.paySumm else {
-                return results.error(message: "Wrong parameter count", req)
+            return results.error(message: "Wrong parameter request", req)
         }
                 
-        // Получаем корзину пользователя
         return Basket.query(on: req.db)
             .filter(\.$userId, .equal, userId)
             .all().map { items -> EventLoopFuture<String> in
@@ -224,8 +219,7 @@ class BasketController {
                 if totalPrice > 0 && paySumm == totalPrice {
                     let result: Dictionary<String, Any> =
                         [
-                            "result": 1,
-                            "message": "Товар оплачен. Сумма \(totalPrice)"
+                            "userMessage": "Товар успешно оплачен!\nСумма \(totalPrice)"
                         ]
                     return self.results.returnResult(result, req)
                 } else {

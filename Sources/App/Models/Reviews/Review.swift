@@ -5,8 +5,8 @@
 //  Created by Maxim Safronov on 27.12.2020.
 //
 
-import Fluent
 import Vapor
+import FluentSQLiteDriver
 
 final class Review: Model, Content {
     static let schema = "reviews"
@@ -14,8 +14,8 @@ final class Review: Model, Content {
     @ID(key: .id)
     var id: UUID?
     
-    @Field(key: "review_id")
-    var reviewId: Int
+    @Field(key: "id_review")
+    var idReview: Int
 
     @Field(key: "id_product")
     var idProduct: Int
@@ -33,18 +33,18 @@ final class Review: Model, Content {
     var show: Bool
     
     @Field(key: "description")
-    var reviewDescription: String
+    var description: String
     
     init() { }
     
-    init(id: Int? = nil, idProduct: Int, userName: String, userEmail: String, title: String, show: Bool, reviewDescription: String) {
-        self.reviewId = id ?? -1
+    init(id: Int? = nil, idProduct: Int, userName: String, userEmail: String, title: String, show: Bool, description: String) {
+        self.idReview = id ?? -1
         self.idProduct = idProduct
         self.userName = userName
         self.userEmail = userEmail
         self.title = title
         self.show = show
-        self.reviewDescription = reviewDescription
+        self.description = description
     }
 }
 
@@ -52,7 +52,7 @@ struct CreateReview: Migration {
     func prepare(on database: Database) -> EventLoopFuture<Void> {
         let result = database.schema("reviews")
             .id()
-            .field("review_id", .int, .required)
+            .field("id_review", .int, .required)
             .field("id_product", .int, .required)
             .field("user_name", .string, .required)
             .field("user_email", .string, .required)
@@ -61,14 +61,14 @@ struct CreateReview: Migration {
             .field("description", .string, .required)
             .create()
         
-        let rev1 = Review(id: 1, idProduct: 1, userName: "Test", userEmail: "test@mail.ru",
-                              title: "Отзыв о телефоне", show: true, reviewDescription: "Отличный телефон")
+        let _ = Review(id: 1, idProduct: 1, userName: "Даша", userEmail: "dasha@mail.ru",
+                       title: "Отзыв о телефоне", show: true, description: "Отличный телефон!")
+            .save(on: database)
         
-        let rev2 = Review(id: 2, idProduct: 2, userName: "Test 12", userEmail: "test@mail.ru",
-                              title: "Отзыв о чехле", show: true, reviewDescription: "Хороший чехол")
+        let _ = Review(id: 2, idProduct: 2, userName: "Semen Lui", userEmail: "semen@mail.ru",
+                              title: "Отзыв о чехле", show: true, description: "Быстро запачкался!")
+            .save(on: database)
         
-        let _ = rev1.save(on: database)
-        let _ = rev2.save(on: database)
         
         return result
     }
